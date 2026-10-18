@@ -4,8 +4,9 @@ import com.prince.otprelay.settings.RelaySettings
 import com.prince.otprelay.settings.SenderIds
 
 // Regular classes intentionally avoid generated toString methods exposing payloads.
-class SmsPart(val sender: String?, val body: String?)
-class IncomingSms(val sender: String, val body: String)
+class SmsPart(val sender: String?, val body: String?, val timestampMillis: Long = 0)
+class IncomingSms(val sender: String, val body: String, val timestampMillis: Long = 0)
+class DetectedOtp(val sms: IncomingSms, val code: String, val recipient: String)
 
 object MultipartSms {
     // The platform supplies the reassembled PDU sequence in order. Never sort by
@@ -16,14 +17,19 @@ object MultipartSms {
         if (parts.any { it.body == null || it.sender?.let(SenderIds::normalize) != sender }) return null
         if (parts.sumOf { it.body!!.length } > 16_384) return null
         val body = parts.joinToString("") { it.body!! }
-        return if (body.isBlank()) null else IncomingSms(sender, body)
+        return if (body.isBlank()) null else IncomingSms(sender, body, parts.first().timestampMillis)
     }
 }
 
 class IncomingSmsProcessor(private val detector: OtpDetector = OtpDetector()) {
     fun detect(parts: List<SmsPart>, settings: RelaySettings, hasPermission: Boolean): Boolean {
-        if (!hasPermission || !settings.detectionEnabled) return false
-        val sms = MultipartSms.combine(parts) ?: return false
-        return detector.isLikelyOtp(sms.sender, sms.body, settings.approvedSenders)
+        return candidate(parts, settings, hasPermission) != null
+    }
+
+    fun candidate(parts: List<SmsPart>, settings: RelaySettings, hasPermission: Boolean): DetectedOtp? {
+        if (!hasPermission || !settings.detectionEnabled) return null
+        val sms = MultipartSms.combine(parts) ?: return null
+        val code = detector.findCode(sms.sender, sms.body, settings.approvedSenders) ?: return null
+        return DetectedOtp(sms, code, settings.recipient)
     }
 }

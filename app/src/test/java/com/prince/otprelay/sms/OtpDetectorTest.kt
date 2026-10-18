@@ -53,4 +53,10 @@ class OtpDetectorTest {
         assertFalse(detector.isLikelyOtp("VM-TESTBK", null, approved))
         assertFalse(detector.isLikelyOtp("VM-TESTBK", "", approved))
     }
+
+    @Test fun extractsOnlyUnambiguousContextualCandidate() {
+        assertEquals("482619", detector.findCode("VM-TESTBK", "OTP: 482619", approved))
+        assertNull(detector.findCode("VM-TESTBK", "OTP 482619. Another OTP 391742.", approved))
+        assertNull(detector.findCode("OTHER", "OTP: 482619", approved))
+    }
 }

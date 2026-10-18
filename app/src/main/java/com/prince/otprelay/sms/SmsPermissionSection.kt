@@ -73,11 +73,11 @@ fun SmsPermissionSection(activity: Activity, status: DetectionStatus) {
             Text("Android can withhold or delay OTP broadcasts, including for hours. Permission does not guarantee bank OTP access. OtpRelay cannot know that an undelivered message existed and will not report it as detected.")
             Text(when (status) {
                 DetectionStatus.WAITING -> "No eligible OTP has been observed in this app process. A missing broadcast does not prove that no OTP arrived."
-                DetectionStatus.LIKELY_OTP_OBSERVED -> "An approved, delivered SMS with likely OTP context was observed in this app process. Its body and code were discarded."
+                DetectionStatus.LIKELY_OTP_OBSERVED -> "An approved, delivered SMS with likely OTP context was observed in this app process. Its body was discarded; a candidate may be available briefly for review."
                 DetectionStatus.INVALID_BROADCAST -> "A malformed incoming SMS broadcast was ignored. No detection was reported for it."
                 DetectionStatus.PROCESSING_UNAVAILABLE -> "An incoming broadcast could not be processed. No detection was reported for it."
             })
-            Text("Status is temporary and contains no SMS content. Notifications and sending are not implemented.")
+            Text("Status is temporary and contains no SMS content. Review is required before opening an SMS draft; nothing is sent automatically.")
             Text("Contacts, inbox history and sent-message history: no access requested.")
         }
     }

@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.provider.Telephony
 import androidx.core.content.ContextCompat
 import com.prince.otprelay.settings.SettingsRepository
+import com.prince.otprelay.review.CandidateSessions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -25,7 +26,7 @@ class SmsReceiver : BroadcastReceiver() {
                 DetectionStatusStore.report(DetectionStatus.INVALID_BROADCAST)
                 return
             }
-            messages.map { message -> SmsPart(message?.originatingAddress, message?.messageBody) }
+            messages.map { message -> SmsPart(message?.originatingAddress, message?.messageBody, message?.timestampMillis ?: 0) }
         } catch (_: RuntimeException) {
             // Malformed extras/PDUs and permission races must not crash or log payloads.
             DetectionStatusStore.report(DetectionStatus.INVALID_BROADCAST)
@@ -44,8 +45,10 @@ class SmsReceiver : BroadcastReceiver() {
                 // Bound work so every goAsync result is finished within the receiver window.
                 withTimeout(8_000) {
                     val settings = SettingsRepository(appContext).settings.first()
-                    if (IncomingSmsProcessor().detect(parts, settings, hasSmsPermission(appContext))) {
+                    val candidate = IncomingSmsProcessor().candidate(parts, settings, hasSmsPermission(appContext))
+                    if (candidate != null) {
                         DetectionStatusStore.report(DetectionStatus.LIKELY_OTP_OBSERVED)
+                        CandidateSessions.offer(appContext, candidate)
                     }
                 }
             } catch (_: Exception) {
