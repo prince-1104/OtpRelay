@@ -2,12 +2,13 @@
 
 Personal, local-only Android application. Package: `com.prince.otprelay`.
 
-## Settings increment
+## Incoming SMS detection
 
 The launch screen provides a trusted recipient field, editable approved bank sender
 list, detection preference switch, permission status, and explicit Save button.
-SMS reading, detection, notifications, and sending remain unimplemented. The
-detection switch records intent only and clearly states that monitoring will not start.
+Incoming SMS detection uses only Android's delivered `SMS_RECEIVED` broadcasts.
+The saved detection setting must be enabled and `RECEIVE_SMS` permission must be
+granted. Notifications and sending remain unimplemented.
 
 - Kotlin with Android Gradle Plugin's built-in Kotlin support.
 - Jetpack Compose and Material 3, light/dark and Android 12+ dynamic colors.
@@ -16,8 +17,10 @@ detection switch records intent only and clearly states that monitoring will not
 - `SettingsRepository` uses one application-scoped Preferences DataStore instance.
   Its only keys are `trusted_recipient`, `approved_senders`, and `detection_enabled`.
   No OTP or message payload is accepted or persisted.
-- No runtime permissions, app-defined SMS receivers, background workers, services, database,
-  logging, network clients, analytics, advertising, or automatic forwarding.
+- A manifest `SmsReceiver`, protected by the sender-side `BROADCAST_SMS`
+  permission, accepts system SMS broadcasts. `RECEIVE_SMS` is the only requested
+  runtime permission. No inbox/sent-message queries, background workers, services,
+  SMS database, payload logging, network clients, analytics, ads, or forwarding.
 - Backup and device transfer are disabled using legacy flags and Android 12+
   extraction rules. Settings live in the app's private internal storage.
   AndroidX adds its own internal signature permission and initialization/profile
@@ -63,7 +66,53 @@ On macOS/Linux, mark `gradlew` executable and use `./gradlew`.
 
 Manual smoke check: save a recipient and sender list, relaunch to verify persistence,
 remove a sender and save again, try invalid input, rotate the device, switch
-dark/light mode, and check large fonts. No permission prompts should appear.
+dark/light mode, and check large fonts. Permission is requested only when the
+user taps **Allow incoming SMS**, never automatically on launch or Save.
+
+## Receive SMS and permission behavior
+
+1. Add an exact approved sender ID/short code and a valid recipient; enable
+   detection and Save. Unsaved changes do not affect the receiver.
+2. Tap **Allow incoming SMS** to request `RECEIVE_SMS`. A denied permission leaves
+   reception unavailable; the UI explains the reason for requesting it and offers
+   a retry when Android permits one. When further prompts are unavailable, it
+   links to app settings. Status refreshes on resume, including after revocation.
+3. `RECEIVE_SMS` is hard-restricted on Android: the installer/device may prevent a
+   grant even when the user wants it. No role changes or alternate APIs are used
+   to work around this. A phone without SMS capability cannot receive broadcasts.
+4. The receiver checks the action and permission, extracts PDUs with
+   `Telephony.Sms.Intents.getMessagesFromIntent`, and joins bodies in supplied
+   multipart order without inserting spaces. Null addresses/bodies, mixed senders,
+   empty/malformed broadcasts, over 32 parts, and bodies over 16 KiB are discarded.
+5. A bounded `goAsync()` coroutine reads the saved settings, checks permission
+   again, filters the normalized exact sender allow-list, and classifies the
+   message. Work finishes within an eight-second coroutine timeout; settings
+   errors fail closed. No broadcast is aborted and no message is stored or retried.
+
+`OtpDetector` requires a standalone six-digit ASCII candidate directly linked to
+OTP wording: `OTP`, `one-time password`/`one time password`, or `verification code`.
+It supports code-before-keyword and common linking phrases. It rejects longer or
+embedded numbers, decimal amounts, and unrelated reference/order numbers even
+when an OTP safety reminder appears elsewhere. This conservative English heuristic
+can miss unusual wording; it is not proof of sender authenticity or a valid OTP.
+
+Only a payload-free enum status survives processing, in process memory. The UI
+reports an observation only after an actually delivered, approved SMS matches.
+Codes, bodies, and sender addresses are never retained in this status, DataStore,
+logs, notifications, intents, saved state, or history. It resets on process death.
+No notification or sending action is performed.
+
+Android can withhold/delay OTP broadcasts even with permission. OtpRelay has no
+way to distinguish an undelivered OTP from no SMS at all and never labels either
+as detected. The UI states this limitation; receiving an OTP promptly is not
+guaranteed. No accessibility, notification scraping, provider polling, privileged
+permission request, default-SMS role request, or alternate receiver is added.
+
+Manual device verification (not yet performed): on an SMS-capable emulator or
+test phone, use only invented messages/senders; check permission denial/revocation,
+saved toggle off/on, unapproved senders, multipart content, and matching/nonmatching
+wording. Verify platform restrictions on Android 17 separately. Do not use a bank
+OTP as a test fixture or change target SDK to evade platform behavior.
 
 ## Validation and persistence behavior
 
@@ -90,6 +139,11 @@ Unit tests cover international normalization/rejection, sender validation,
 configuration requirements, empty defaults, persistence across DataStore reopening,
 sender removal, clearing settings, invalid writes preserving prior settings,
 duplicate/pending sender handling, and failed saves retaining edits for retry.
+SMS tests use only synthetic messages and cover OTP wording variations, exact
+sender approval, missing context, ordinary messages, unrelated numbers, six-digit
+boundaries, disabled detection, denied permission, null senders/bodies, multipart
+word/code splits, mixed senders, empty and oversized input. These are host tests
+of detection and assembly, not an assertion that Android delivers protected OTPs.
 File-backed host tests explicitly select DataStore's Okio storage for atomic
 replacement on Windows; Android uses its standard Preferences DataStore delegate.
 
@@ -107,8 +161,8 @@ reading SMS is not a guarantee that protected bank OTPs are accessible.
   scraping, accessibility interception, default-SMS-role misuse, or other bypasses.
 - SMS Retriever/User Consent are purpose-specific verification APIs, not a
   general bank-OTP interception mechanism.
-- Add ordinary SMS permissions only when a legitimate, supported flow is built,
-  with runtime consent and clear handling of denied/restricted access.
+- Keep `RECEIVE_SMS` limited to incoming delivery and explicit runtime consent.
+  Do not add `READ_SMS`, `SEND_SMS`, contact access, or SMS-history queries.
 - Add `POST_NOTIFICATIONS` only with a notification feature; request it in context
   on Android 13+. Notifications must omit OTP values and SMS bodies, including
   lock-screen content and intent extras.
@@ -124,6 +178,8 @@ Official references:
 - [Android 17 target changes](https://developer.android.com/about/versions/17/behavior-changes-17)
 - [Permission reference](https://developer.android.com/reference/android/Manifest.permission#RECEIVE_SENSITIVE_NOTIFICATIONS)
 - [Notification permission](https://developer.android.com/develop/ui/views/notifications/notification-permission)
+- [SMS broadcast and extraction APIs](https://developer.android.com/reference/android/provider/Telephony.Sms.Intents)
+- [Runtime permission requests](https://developer.android.com/training/permissions/requesting)
 - [AGP 9.4 compatibility](https://developer.android.com/build/releases/agp-9-4-0-release-notes)
 
 ## Validation
@@ -135,8 +191,9 @@ gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --console=p
 BUILD SUCCESSFUL
 ```
 
-Kotlin compilation, resource processing, dex generation, APK packaging, nine unit
+Kotlin compilation, resource processing, dex generation, APK packaging, sixteen unit
 tests, and lint passed. Lint retains dependency-update warnings; the pinned
 versions are deliberate, and Gradle 9.6.0 is AGP 9.4's documented default.
-The merged debug manifest was inspected: no SMS, notification, sending, or
-internet permissions. No emulator or physical-device execution was performed.
+The merged debug manifest includes `RECEIVE_SMS` and a `BROADCAST_SMS`-protected
+receiver; no SMS reading/history, sending, contacts, notification, or internet
+permissions. No emulator or physical-device execution was performed.

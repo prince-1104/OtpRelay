@@ -25,7 +25,8 @@ fun SettingsScreen(
     onRemoveSender: (String) -> Unit,
     onDetection: (Boolean) -> Unit,
     onSave: () -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    permissionContent: @Composable () -> Unit
 ) {
     Scaffold { insets ->
         Box(Modifier.fillMaxSize().padding(insets), contentAlignment = Alignment.TopCenter) {
@@ -80,19 +81,11 @@ fun SettingsScreen(
                             Switch(checked = state.detectionEnabled, onCheckedChange = onDetection, enabled = state.editable,
                                 modifier = Modifier.semantics { contentDescription = "Enable OTP detection" })
                         }
-                        Text("This saves your preference only. SMS detection is not implemented and no monitoring will start.")
+                        Text("Applies after Save. Detection checks eligible incoming SMS only when this saved setting is on and SMS permission is granted. Android may still withhold OTP messages.")
                         Text("Sending will always require an explicit user action.")
                     }
                 }
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Permission status", style = MaterialTheme.typography.titleMedium)
-                        Text("Incoming SMS: not requested; unavailable in this version.")
-                        Text("Notifications: not requested; unavailable in this version.")
-                        Text("Contacts, SMS inbox history and sent-message history: no access requested.")
-                        Text("Android may restrict or delay OTP access even if SMS permission is granted in a future version.")
-                    }
-                }
+                permissionContent()
                 Button(onClick = onSave, enabled = state.editable, modifier = Modifier.fillMaxWidth()) {
                     Text(if (state.saving) "Saving…" else "Save settings")
                 }
