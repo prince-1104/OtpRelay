@@ -39,8 +39,8 @@ The candidate must still be within its original two-minute lifetime. If another
 app or the home screen is foreground, unlocking alone does not launch OtpRelay:
 tap its generic notification or **Review & send**, then unlock to review. On
 Android 12+, the notification action explicitly requests authentication. No code
-is revealed or sent from the lock screen. Manual bank/amount entry is still needed
-before the final Send to Dad confirmation.
+is revealed or sent from the lock screen. Bank/amount edits are optional; missing
+details do not block the final Send to Dad confirmation.
 
 **Manual verification history** on the settings screen opens a local notes list.
 Enter a bank name, editable date/time in the phone's current time zone, optional
@@ -174,9 +174,13 @@ the candidate; there is no persistence or restoration of codes.
 - **Send to Dad** is the final confirmation for direct SMS sending. It validates
   the current saved recipient again, rechecks candidate expiry, enabled detection,
   sender approval, and `SEND_SMS`, then sends the confirmed preview in the format
-  `Example Bank : 482619 amount : 899`. Bank name and optional amount are entered
-  manually in the review dialog, not inferred from SMS contents or sender identity.
-  An unknown amount is labeled `not provided`. Review fields remain transient and
+  `Example Bank : 482619 amount : 899`. Known sender tokens and explicit bank names
+  provide best-effort bank labels; currency-marked transaction wording provides
+  conservative amount suggestions. Conflicting banks, ambiguous amounts and
+  unsupported formats stay unknown. These labels do not verify bank identity.
+  Both fields are optional and editable under **Edit bank / amount (optional)**.
+  An unknown bank is labeled `Bank unknown`; an unknown amount is `not provided`.
+  No typing is required before sending a valid candidate. Review fields remain transient and
   are not automatically added to manual history. No complete incoming SMS or unrelated content
   is forwarded. The button is disabled while preparing/sending and after success
   or an unknown result. Carrier SMS charges may apply.

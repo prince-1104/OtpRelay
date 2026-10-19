@@ -13,8 +13,12 @@ class SmsTextFormatterTest {
         assertEquals("Example Bank : 482619 amount : not provided", SmsTextFormatter.format("Example Bank", "482619", ""))
     }
 
+    @Test fun missingBankAndAmountNeverRequireTypingBeforeConfirmation() {
+        assertEquals("Bank unknown : 482619 amount : not provided", SmsTextFormatter.format("", "482619", ""))
+    }
+
     @Test fun rejectsInvalidFieldsAndMessageInjection() {
-        listOf("", "Bank 482619", "Example\nBank", "Example|Bank", "A".repeat(41)).forEach {
+        listOf("Bank 482619", "Example\nBank", "Example|Bank", "A".repeat(41)).forEach {
             assertNull(SmsTextFormatter.format(it, "482619", "899"))
         }
         listOf("0", "-899", "899.001", "1,000", "899\nOTP", "1e3", "9".repeat(13)).forEach {

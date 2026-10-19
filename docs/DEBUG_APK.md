@@ -1,7 +1,7 @@
 # Personal-use debug APK
 
-Verified version 0.2.2 on 2026-10-19: Gradle `:app:test :app:assembleDebug :app:lintDebug`
-succeeded; all 70 tests across 15 suites passed, with zero failures, errors,
+Verified version 0.2.3 on 2026-10-19: Gradle `:app:test :app:assembleDebug :app:lintDebug`
+succeeded; all 76 tests across 16 suites passed, with zero failures, errors,
 or skipped tests. Only the debug unit-test variant is configured. An initial
 attempt to select `testReleaseUnitTest` failed because that task does not exist;
 the aggregate `test` task subsequently ran all configured unit tests.
@@ -23,8 +23,8 @@ Build only: `.\gradlew.bat :app:assembleDebug` after setting the environment abo
 
 Output: `D:\Hopper\projects\SMS-auto\app\build\outputs\apk\debug\app-debug.apk`
 
-Verified size: 12,056,111 bytes. SHA-256:
-`4BE295D0FA42D2BF4E74A746445FC7542C0AC05FED9446A7B33BA9047A7EF081`.
+Verified size: 12,072,495 bytes. SHA-256:
+`4CF8E3584F50ACAC1B3445DBF933978BC49B0726F37489CBAE1053EE8FF7593B`.
 Android `apksigner verify --verbose` succeeded (v2 signature, one signer).
 These values describe this build; rebuilding may change the hash.
 Gradle reported that two dependency native libraries could not be stripped and
@@ -50,7 +50,8 @@ The APK is a debuggable development build, not a production release.
 5. Choose a default SMS SIM in Android settings if using multiple SIMs. When an
    eligible notification arrives, unlock the phone and tap it to review. Grant
    SMS sending permission through the review screen if needed, then separately
-   enter the bank name and optional amount. Check the SMS preview, then
+   check the SMS preview. Bank/amount are suggested when recognized; both are
+   optional and can be edited or cleared. Unknown details never require typing. Then
    tap Send to Dad to confirm the outgoing SMS. Granting permission never sends.
    Cancel discards the candidate; candidates expire after two minutes.
 6. For popup banners on an existing installation, expand Permissions & detection

@@ -93,9 +93,10 @@ screenshots/logs in an issue or report.
 
 - [ ] Choose one synthetic candidate/test recipient. Tap Send to Dad once: UI changes
   through checking/sending, disables another send, and submits exactly the confirmed
-  preview, e.g. `Example Bank : 482619 amount : 899`, with manually entered bank and
-  amount. A blank amount displays `not provided`. Invalid bank/amount disables
-  sending. No complete incoming message is forwarded and no review fields enter
+  preview, e.g. `Example Bank : 482619 amount : 899`, with best-effort suggested bank
+  and amount. Missing details display `Bank unknown` / `not provided` and do not
+  disable sending. Edits are optional; invalid edited values must be corrected or
+  cleared. No complete incoming message is forwarded and no review fields enter
   manual history automatically. Check field/preview layout with the keyboard open.
 - [ ] Rapid repeated taps, rotation, and reopening review during an active request
   do not create a second outgoing message. A different candidate cannot start a

@@ -1,6 +1,7 @@
 package com.prince.otprelay.review
 
 import com.prince.otprelay.sms.DetectedOtp
+import com.prince.otprelay.sms.TransactionDetailsDetector
 import java.security.SecureRandom
 import java.util.UUID
 import javax.crypto.Mac
@@ -8,7 +9,7 @@ import javax.crypto.spec.SecretKeySpec
 
 // Deliberately no generated toString, Parcelable, Serializable, or persistence API.
 class OtpCandidate(val token: String, val code: String, val sender: String,
-    val recipient: String, val expiresAt: Long)
+    val recipient: String, val expiresAt: Long, val bank: String? = null, val amount: String? = null)
 
 /** Bounded process-memory storage with an injected monotonic clock for tests. */
 class CandidateStore(private val now: () -> Long) {
@@ -24,7 +25,9 @@ class CandidateStore(private val now: () -> Long) {
         val time = now()
         seen[fingerprint] = time + DEDUP_MS
         val token = UUID.randomUUID().toString()
-        active = OtpCandidate(token, detection.code, detection.sms.sender, detection.recipient, time + LIFETIME_MS)
+        val details = TransactionDetailsDetector().detect(detection.sms.sender, detection.sms.body, detection.code)
+        active = OtpCandidate(token, detection.code, detection.sms.sender, detection.recipient,
+            time + LIFETIME_MS, details.bank, details.amount)
         return token
     }
 

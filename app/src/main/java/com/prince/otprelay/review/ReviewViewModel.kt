@@ -73,7 +73,7 @@ class ReviewViewModel(application: Application, private val id: String) : Androi
     fun sendToDad(bank: String, amount: String, stillConfirmed: () -> Boolean) {
         if (!visible || mutableState.value.candidate == null || !stillConfirmed()) return
         if (SmsTextFormatter.format(bank, requireNotNull(mutableState.value.candidate).code, amount) == null) {
-            mutableState.value = mutableState.value.copy(message = "Enter a bank name and a valid amount, or leave the amount blank.")
+            mutableState.value = mutableState.value.copy(message = "Correct the optional bank/amount fields or clear them to send without those details.")
             return
         }
         val attempt = SendSessions.controller.begin(id) ?: run {

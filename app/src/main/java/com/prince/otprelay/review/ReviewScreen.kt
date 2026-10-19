@@ -19,8 +19,9 @@ import com.prince.otprelay.sending.SmsTextFormatter
 fun ReviewScreen(state: ReviewState, onSend: (String, String) -> Unit, onCancel: () -> Unit,
     sendPermissionGranted: Boolean, permissionContent: @Composable () -> Unit) {
     // Not saveable: review metadata and preview disappear when the candidate is hidden or expires.
-    var bank by remember(state.candidate?.token) { mutableStateOf("") }
-    var amount by remember(state.candidate?.token) { mutableStateOf("") }
+    var bank by remember(state.candidate?.token) { mutableStateOf(state.candidate?.bank.orEmpty()) }
+    var amount by remember(state.candidate?.token) { mutableStateOf(state.candidate?.amount.orEmpty()) }
+    var editDetails by remember(state.candidate?.token) { mutableStateOf(false) }
     val preview = state.candidate?.let { SmsTextFormatter.format(bank, it.code, amount) }
     Dialog(onDismissRequest = { if (!state.busy) onCancel() }, properties = DialogProperties(
         securePolicy = SecureFlagPolicy.SecureOn, dismissOnClickOutside = false)) {
@@ -37,16 +38,22 @@ fun ReviewScreen(state: ReviewState, onSend: (String, String) -> Unit, onCancel:
                 Text(candidate.code, style = MaterialTheme.typography.headlineLarge)
                 Text("Sender: ${candidate.sender}")
                 Text("Configured recipient: ${candidate.recipient}")
-                OutlinedTextField(bank, { bank = it }, label = { Text("Bank name") },
+                Text("Bank and amount are best-effort suggestions, not verified facts. Unknown details never block sending.")
+                TextButton(onClick = { editDetails = !editDetails }, enabled = !state.busy) {
+                    Text(if (editDetails) "Hide optional details" else "Edit bank / amount (optional)")
+                }
+                if (editDetails) {
+                OutlinedTextField(bank, { bank = it }, label = { Text("Bank name (optional)") },
                     placeholder = { Text("ICICI") }, singleLine = true,
                     enabled = !state.busy && state.send.canAttempt, modifier = Modifier.fillMaxWidth(),
                     isError = bank.isNotBlank() && SmsTextFormatter.bank(bank) == null,
-                    supportingText = { Text("Enter the bank name (2–40 letters/spaces). Not inferred from the sender.") })
+                    supportingText = { Text("Correct the suggestion or leave blank if unknown.") })
                 OutlinedTextField(amount, { amount = it }, label = { Text("Amount (optional)") },
                     singleLine = true, enabled = !state.busy && state.send.canAttempt,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(), isError = !SmsTextFormatter.validAmount(amount),
                     supportingText = { Text("Positive amount, up to two decimal places, without commas. Leave blank if unknown.") })
+                }
                 if (preview != null) {
                     Text("SMS preview", style = MaterialTheme.typography.titleMedium)
                     Text(preview)

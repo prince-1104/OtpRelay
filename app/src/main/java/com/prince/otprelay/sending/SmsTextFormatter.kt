@@ -17,7 +17,7 @@ object SmsTextFormatter {
     }
 
     fun format(bank: String, code: String, amount: String): String? {
-        val name = bank(bank) ?: return null
+        val name = if (bank.isBlank()) "Bank unknown" else bank(bank) ?: return null
         if (!Regex("[0-9]{6}").matches(code) || !validAmount(amount)) return null
         val displayedAmount = if (amount.isBlank()) "not provided" else amount(amount) ?: return null
         return "$name : $code amount : $displayedAmount"
