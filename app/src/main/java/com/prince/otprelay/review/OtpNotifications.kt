@@ -54,7 +54,8 @@ object OtpNotifications {
             .setContentText(TEXT).setStyle(NotificationCompat.BigTextStyle().bigText(TEXT))
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setPublicVersion(publicNotification)
             .setContentIntent(tap).setAutoCancel(true).setLocalOnly(true)
-            .addAction(0, "Review & send", tap)
+            .addAction(NotificationCompat.Action.Builder(0, "Review & send", tap)
+                .setAuthenticationRequired(true).build())
             .setTimeoutAfter(CandidateStore.LIFETIME_MS).build()
         try {
             // Recheck to handle revocation between constructing and posting the notification.

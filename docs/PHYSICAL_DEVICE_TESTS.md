@@ -148,6 +148,16 @@ Leave unchecked until exercised; this checklist is not evidence of device execut
 - [ ] On an existing installation, enable high importance/pop-on-screen for OTP
   review manually. On a fresh installation the channel starts at high importance.
   Android/OEM may still suppress heads-up banners. No overlay permission is needed.
+- [ ] Lock while OtpRelay settings are the active screen, deliver an authorized
+  synthetic message, then unlock within two minutes. A fresh eligible candidate
+  opens one review dialog once settings resume. Repeat lock/unlock: no duplicate
+  dialog or automatic send. Lock/unlock while review is open: sensitive details
+  hide while paused and are revalidated after unlock.
+- [ ] With another app or the home screen active, unlock after a synthetic arrival:
+  no OtpRelay activity launches. Tap Review & send on the lock-screen notification,
+  authenticate and review. On Android 12+ the action requests authentication. If
+  notification visibility is disabled by the user, honor that setting. Unlock
+  after two minutes must not restore an expired candidate.
 - [ ] Test large font, small screen, keyboard, rotation and screen lock. Confirmation
   buttons stay reachable; OTPs never appear in lock-screen notification text.
 - [ ] Add synthetic manual notes with bank/date/time and optional amount/currency.

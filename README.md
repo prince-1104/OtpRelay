@@ -32,6 +32,16 @@ installation, open **Permissions & detection status > Notification settings** an
 enable pop-on-screen/high importance for **OTP review** if desired. No overlay,
 full-screen intent, or background activity-launch permission is added.
 
+Unlock handling rechecks a pending candidate on activity resume and on the system's
+user-present event while the activity is visible. A lock check does not consume
+the pending review, and repeated unlock/resume events do not open duplicate dialogs.
+The candidate must still be within its original two-minute lifetime. If another
+app or the home screen is foreground, unlocking alone does not launch OtpRelay:
+tap its generic notification or **Review & send**, then unlock to review. On
+Android 12+, the notification action explicitly requests authentication. No code
+is revealed or sent from the lock screen. Manual bank/amount entry is still needed
+before the final Send to Dad confirmation.
+
 **Manual verification history** on the settings screen opens a local notes list.
 Enter a bank name, editable date/time in the phone's current time zone, optional
 positive amount and currency. Records are entirely manual: neither sending an OTP

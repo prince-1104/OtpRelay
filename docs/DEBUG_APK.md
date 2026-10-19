@@ -1,7 +1,7 @@
 # Personal-use debug APK
 
-Verified version 0.2.1 on 2026-10-19: Gradle `:app:test :app:assembleDebug :app:lintDebug`
-succeeded; all 66 tests across 14 suites passed, with zero failures, errors,
+Verified version 0.2.2 on 2026-10-19: Gradle `:app:test :app:assembleDebug :app:lintDebug`
+succeeded; all 70 tests across 15 suites passed, with zero failures, errors,
 or skipped tests. Only the debug unit-test variant is configured. An initial
 attempt to select `testReleaseUnitTest` failed because that task does not exist;
 the aggregate `test` task subsequently ran all configured unit tests.
@@ -24,7 +24,7 @@ Build only: `.\gradlew.bat :app:assembleDebug` after setting the environment abo
 Output: `D:\Hopper\projects\SMS-auto\app\build\outputs\apk\debug\app-debug.apk`
 
 Verified size: 12,056,111 bytes. SHA-256:
-`3B8ABD365EA11B4A854838A3BB0FBD335DCF790E180D0E1DF35F2658CB36DDF7`.
+`4BE295D0FA42D2BF4E74A746445FC7542C0AC05FED9446A7B33BA9047A7EF081`.
 Android `apksigner verify --verbose` succeeded (v2 signature, one signer).
 These values describe this build; rebuilding may change the hash.
 Gradle reported that two dependency native libraries could not be stripped and
@@ -58,6 +58,10 @@ The APK is a debuggable development build, not a production release.
    pop-on-screen. Android and Do Not Disturb can still suppress banners. With the
    settings screen open and unlocked, an eligible candidate opens its confirmation
    dialog directly; while in another app, tap Review & send on the notification.
+   Resume and unlock events recheck the candidate while OtpRelay is visible. A
+   background app never opens automatically just because you unlock the phone;
+   tap its notification to review. No OTP appears on the lock screen, and the
+   notification action requests authentication on Android 12+.
 7. Open Manual verification history to enter bank name, date/time, optional amount
    and currency. Check records against your bank and mark Manually verified.
    These notes are independent of OTP detection and are not proof of payment.

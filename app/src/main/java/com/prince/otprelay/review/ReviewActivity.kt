@@ -28,6 +28,7 @@ class ReviewActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         enableEdgeToEdge()
+        lifecycle.addObserver(ForegroundUnlockObserver(this, ::refreshUnlockedReview))
         setContent {
             OtpRelayTheme {
                 val state by model.state.collectAsStateWithLifecycle()
@@ -40,8 +41,7 @@ class ReviewActivity : ComponentActivity() {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
+    private fun refreshUnlockedReview() {
         CandidateSessions.refresh(applicationContext)
         unlocked = !getSystemService(KeyguardManager::class.java).isDeviceLocked
         sendPermission = ConfirmedSmsSender.permissionGranted(this)

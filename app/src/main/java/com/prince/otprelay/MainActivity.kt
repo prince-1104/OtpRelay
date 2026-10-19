@@ -13,6 +13,8 @@ import android.app.KeyguardManager
 import android.content.Intent
 import com.prince.otprelay.history.HistoryActivity
 import com.prince.otprelay.review.OtpNotifications
+import com.prince.otprelay.review.ForegroundUnlockObserver
+import com.prince.otprelay.review.ReviewPresentationGate
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import com.prince.otprelay.settings.SettingsRepository
@@ -25,7 +27,7 @@ import com.prince.otprelay.review.NotificationPermissionSection
 import com.prince.otprelay.ui.theme.OtpRelayTheme
 
 class MainActivity : ComponentActivity() {
-    private var presentedToken: String? = null
+    private val presentation = ReviewPresentationGate()
     override fun onResume() {
         super.onResume()
         CandidateSessions.refresh(applicationContext)
@@ -34,16 +36,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        lifecycle.addObserver(ForegroundUnlockObserver(this, ::presentPendingReview))
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
-                CandidateSessions.token.collect { token ->
-                    if (token != null && token != presentedToken &&
-                        !getSystemService(KeyguardManager::class.java).isDeviceLocked &&
-                        CandidateSessions.find(token) != null) {
-                        presentedToken = token
-                        startActivity(OtpNotifications.reviewIntent(this@MainActivity, token))
-                    }
-                }
+                CandidateSessions.token.collect { presentPendingReview() }
             }
         }
         setContent {
@@ -59,6 +55,16 @@ class MainActivity : ComponentActivity() {
                     NotificationPermissionSection(this@MainActivity, candidateToken)
                 }
             }
+        }
+    }
+
+    private fun presentPendingReview() {
+        CandidateSessions.refresh(applicationContext)
+        val token = CandidateSessions.token.value
+        if (presentation.take(token, lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED),
+                !getSystemService(KeyguardManager::class.java).isDeviceLocked,
+                token != null && CandidateSessions.find(token) != null)) {
+            startActivity(OtpNotifications.reviewIntent(this, requireNotNull(token)))
         }
     }
 }
