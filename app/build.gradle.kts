@@ -10,8 +10,8 @@ android {
         applicationId = "com.prince.otprelay"
         minSdk = 26
         targetSdk = 37
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.2.1"
     }
     buildFeatures { compose = true }
     compileOptions {

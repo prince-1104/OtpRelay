@@ -21,9 +21,11 @@ internal object ConfirmedSmsSender {
         Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
 
     @Suppress("DEPRECATION")
-    fun submit(context: Context, candidate: OtpCandidate, attempt: String) {
+    fun submit(context: Context, candidate: OtpCandidate, attempt: String, bank: String, amount: String) {
         val token = candidate.token
         fun reject(reason: SendFailure) = SendSessions.controller.preparationFailed(token, attempt, reason)
+        val body = SmsTextFormatter.format(bank, candidate.code, amount)
+            ?: run { reject(SendFailure.PREPARATION); return }
         if (!permissionGranted(context)) { reject(SendFailure.PERMISSION); return }
         if (PhoneNumbers.normalize(candidate.recipient) != candidate.recipient) { reject(SendFailure.INVALID_NUMBER); return }
         if (CandidateSessions.find(token) !== candidate) { reject(SendFailure.SETTINGS_CHANGED); return }
@@ -65,7 +67,7 @@ internal object ConfirmedSmsSender {
             if (!SendSessions.controller.submitted(token, attempt)) { sent.cancel(); return }
             submitted = true
             // Minimal, single-part body. No full incoming SMS or unrelated message is forwarded.
-            manager.sendTextMessage(candidate.recipient, null, "OtpRelay OTP: ${candidate.code}", sent, null)
+            manager.sendTextMessage(candidate.recipient, null, body, sent, null)
             // Returning from sendTextMessage is NOT success. Only the sent callback confirms it.
             SendSessions.awaitResult(context, token, attempt)
         } catch (_: SecurityException) {

@@ -92,8 +92,11 @@ screenshots/logs in an issue or report.
 ## Confirmed send and result states
 
 - [ ] Choose one synthetic candidate/test recipient. Tap Send to Dad once: UI changes
-  through checking/sending, disables another send, and submits only `OtpRelay OTP: `
-  plus the six-digit code. Nothing else from the incoming message is forwarded.
+  through checking/sending, disables another send, and submits exactly the confirmed
+  preview, e.g. `Example Bank : 482619 amount : 899`, with manually entered bank and
+  amount. A blank amount displays `not provided`. Invalid bank/amount disables
+  sending. No complete incoming message is forwarded and no review fields enter
+  manual history automatically. Check field/preview layout with the keyboard open.
 - [ ] Rapid repeated taps, rotation, and reopening review during an active request
   do not create a second outgoing message. A different candidate cannot start a
   concurrent send while one is preparing/sending.

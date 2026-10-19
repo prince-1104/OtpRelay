@@ -4,17 +4,24 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.SecureFlagPolicy
 import com.prince.otprelay.sending.SendPhase
+import com.prince.otprelay.sending.SmsTextFormatter
 
 @Composable
-fun ReviewScreen(state: ReviewState, onSend: () -> Unit, onCancel: () -> Unit,
+fun ReviewScreen(state: ReviewState, onSend: (String, String) -> Unit, onCancel: () -> Unit,
     sendPermissionGranted: Boolean, permissionContent: @Composable () -> Unit) {
+    // Not saveable: review metadata and preview disappear when the candidate is hidden or expires.
+    var bank by remember(state.candidate?.token) { mutableStateOf("") }
+    var amount by remember(state.candidate?.token) { mutableStateOf("") }
+    val preview = state.candidate?.let { SmsTextFormatter.format(bank, it.code, amount) }
     Dialog(onDismissRequest = { if (!state.busy) onCancel() }, properties = DialogProperties(
         securePolicy = SecureFlagPolicy.SecureOn, dismissOnClickOutside = false)) {
       Surface(shape = MaterialTheme.shapes.extraLarge) {
@@ -30,7 +37,21 @@ fun ReviewScreen(state: ReviewState, onSend: () -> Unit, onCancel: () -> Unit,
                 Text(candidate.code, style = MaterialTheme.typography.headlineLarge)
                 Text("Sender: ${candidate.sender}")
                 Text("Configured recipient: ${candidate.recipient}")
-                Text("Expires after two minutes. Sends only the code with ‘OtpRelay OTP:’. Carrier charges may apply.")
+                OutlinedTextField(bank, { bank = it }, label = { Text("Bank name") },
+                    placeholder = { Text("ICICI") }, singleLine = true,
+                    enabled = !state.busy && state.send.canAttempt, modifier = Modifier.fillMaxWidth(),
+                    isError = bank.isNotBlank() && SmsTextFormatter.bank(bank) == null,
+                    supportingText = { Text("Enter the bank name (2–40 letters/spaces). Not inferred from the sender.") })
+                OutlinedTextField(amount, { amount = it }, label = { Text("Amount (optional)") },
+                    singleLine = true, enabled = !state.busy && state.send.canAttempt,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(), isError = !SmsTextFormatter.validAmount(amount),
+                    supportingText = { Text("Positive amount, up to two decimal places, without commas. Leave blank if unknown.") })
+                if (preview != null) {
+                    Text("SMS preview", style = MaterialTheme.typography.titleMedium)
+                    Text(preview)
+                }
+                Text("Expires after two minutes. Only this preview is sent. Carrier charges may apply. These fields are not saved to history.")
             }
             Text(when (state.send.phase) {
                 SendPhase.READY -> if (state.candidate != null) "Ready for your confirmation. No send is started automatically."
@@ -46,8 +67,8 @@ fun ReviewScreen(state: ReviewState, onSend: () -> Unit, onCancel: () -> Unit,
             state.message?.let { Text(it) }
             permissionContent()
         }
-        if (state.candidate != null) Button(onClick = onSend,
-            enabled = !state.busy && state.send.canAttempt && sendPermissionGranted,
+        if (state.candidate != null) Button(onClick = { onSend(bank, amount) },
+            enabled = !state.busy && state.send.canAttempt && sendPermissionGranted && preview != null,
             modifier = Modifier.fillMaxWidth()) { Text(if (state.busy) "Sending…" else "Send to Dad") }
         OutlinedButton(onClick = onCancel, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
             Text(if (state.candidate == null) "Close" else "Cancel")

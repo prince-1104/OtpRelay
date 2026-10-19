@@ -33,7 +33,7 @@ class ReviewActivity : ComponentActivity() {
                 val state by model.state.collectAsStateWithLifecycle()
                 BackHandler { cancelReview() }
                 ReviewScreen(if (unlocked) state else ReviewState(message = "Unlock your phone to review."),
-                    onSend = { model.sendToDad(::confirmedAndResumed) }, onCancel = ::cancelReview,
+                    onSend = { bank, amount -> model.sendToDad(bank, amount, ::confirmedAndResumed) }, onCancel = ::cancelReview,
                     sendPermissionGranted = sendPermission,
                     permissionContent = { if (unlocked) SendPermissionSection(this@ReviewActivity) { sendPermission = it } })
             }

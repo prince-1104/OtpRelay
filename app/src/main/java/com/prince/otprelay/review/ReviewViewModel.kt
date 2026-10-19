@@ -70,8 +70,12 @@ class ReviewViewModel(application: Application, private val id: String) : Androi
     }
 
     /** The sole entry point for sending, wired only to the Send to Dad button. */
-    fun sendToDad(stillConfirmed: () -> Boolean) {
+    fun sendToDad(bank: String, amount: String, stillConfirmed: () -> Boolean) {
         if (!visible || mutableState.value.candidate == null || !stillConfirmed()) return
+        if (SmsTextFormatter.format(bank, requireNotNull(mutableState.value.candidate).code, amount) == null) {
+            mutableState.value = mutableState.value.copy(message = "Enter a bank name and a valid amount, or leave the amount blank.")
+            return
+        }
         val attempt = SendSessions.controller.begin(id) ?: run {
             mutableState.value = mutableState.value.copy(message = "A send is already in progress or this candidate has already been submitted. Wait for its result.")
             return
@@ -85,7 +89,7 @@ class ReviewViewModel(application: Application, private val id: String) : Androi
                     !visible || !stillConfirmed() -> SendSessions.controller.preparationFailed(id, attempt, SendFailure.CANCELLED)
                     PhoneNumbers.normalize(candidate.recipient) != candidate.recipient ->
                         SendSessions.controller.preparationFailed(id, attempt, SendFailure.INVALID_NUMBER)
-                    else -> ConfirmedSmsSender.submit(getApplication(), candidate, attempt)
+                    else -> ConfirmedSmsSender.submit(getApplication(), candidate, attempt, bank, amount)
                 }
             } catch (exception: Exception) {
                 SendSessions.controller.preparationFailed(id, attempt, SendFailure.SETTINGS_UNAVAILABLE)

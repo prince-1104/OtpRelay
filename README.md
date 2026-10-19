@@ -163,8 +163,11 @@ the candidate; there is no persistence or restoration of codes.
   detection invalidates the review.
 - **Send to Dad** is the final confirmation for direct SMS sending. It validates
   the current saved recipient again, rechecks candidate expiry, enabled detection,
-  sender approval, and `SEND_SMS`, then sends only `OtpRelay OTP: ` followed by the
-  six-digit code. No complete incoming SMS, sender details, or unrelated content
+  sender approval, and `SEND_SMS`, then sends the confirmed preview in the format
+  `Example Bank : 482619 amount : 899`. Bank name and optional amount are entered
+  manually in the review dialog, not inferred from SMS contents or sender identity.
+  An unknown amount is labeled `not provided`. Review fields remain transient and
+  are not automatically added to manual history. No complete incoming SMS or unrelated content
   is forwarded. The button is disabled while preparing/sending and after success
   or an unknown result. Carrier SMS charges may apply.
 - **Cancel** discards the candidate and removes its notification before submission.
