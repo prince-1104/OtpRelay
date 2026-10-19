@@ -77,7 +77,7 @@ fun SmsPermissionSection(activity: Activity, status: DetectionStatus) {
                 DetectionStatus.INVALID_BROADCAST -> "A malformed incoming SMS broadcast was ignored. No detection was reported for it."
                 DetectionStatus.PROCESSING_UNAVAILABLE -> "An incoming broadcast could not be processed. No detection was reported for it."
             })
-            Text("Status is temporary and contains no SMS content. Review is required before opening an SMS draft; nothing is sent automatically.")
+            Text("Status is temporary and contains no SMS content. Only Send to Dad on the review screen can submit an SMS; nothing is sent automatically.")
             Text("Contacts, inbox history and sent-message history: no access requested.")
         }
     }

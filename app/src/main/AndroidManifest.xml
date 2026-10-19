@@ -1,13 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
-    <!-- Package visibility only: lets getDefaultSmsPackage locate the user's SMS app.
-         This does not register an SMS_DELIVER receiver or request the default SMS role. -->
-    <queries>
-        <intent><action android:name="android.provider.Telephony.SMS_DELIVER" /></intent>
-    </queries>
     <application
         android:allowBackup="false"
         android:fullBackupContent="false"
@@ -16,6 +12,7 @@
         android:icon="@drawable/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.OtpRelay">
+        <receiver android:name=".sending.SmsSentReceiver" android:exported="false" />
         <activity android:name=".review.ReviewActivity" android:exported="false"
             android:excludeFromRecents="true" />
         <receiver

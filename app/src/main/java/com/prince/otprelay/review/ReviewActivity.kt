@@ -1,11 +1,7 @@
 package com.prince.otprelay.review
 
 import android.app.KeyguardManager
-import android.content.ActivityNotFoundException
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import android.provider.Telephony
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -16,6 +12,9 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.prince.otprelay.ui.theme.OtpRelayTheme
+import com.prince.otprelay.sending.ConfirmedSmsSender
+import com.prince.otprelay.sending.SendPermissionSection
+import com.prince.otprelay.sending.SendSessions
 
 class ReviewActivity : ComponentActivity() {
     private val token by lazy {
@@ -23,6 +22,7 @@ class ReviewActivity : ComponentActivity() {
     }
     private val model: ReviewViewModel by viewModels { ReviewViewModel.Factory(applicationContext, token) }
     private var unlocked by mutableStateOf(false)
+    private var sendPermission by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,7 +33,9 @@ class ReviewActivity : ComponentActivity() {
                 val state by model.state.collectAsStateWithLifecycle()
                 BackHandler { cancelReview() }
                 ReviewScreen(if (unlocked) state else ReviewState(message = "Unlock your phone to review."),
-                    onSend = { model.openDraft(::openSmsDraft) }, onCancel = ::cancelReview)
+                    onSend = { model.sendToDad(::confirmedAndResumed) }, onCancel = ::cancelReview,
+                    sendPermissionGranted = sendPermission,
+                    permissionContent = { if (unlocked) SendPermissionSection(this@ReviewActivity) { sendPermission = it } })
             }
         }
     }
@@ -41,6 +43,7 @@ class ReviewActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         unlocked = !getSystemService(KeyguardManager::class.java).isDeviceLocked
+        sendPermission = ConfirmedSmsSender.permissionGranted(this)
         if (unlocked) model.refresh() else model.hide()
     }
 
@@ -51,29 +54,12 @@ class ReviewActivity : ComponentActivity() {
     }
 
     private fun cancelReview() {
-        CandidateSessions.discard(applicationContext, token)
+        // Leaving the screen cannot recall an already submitted SMS.
+        if (!SendSessions.controller.state(token).inProgress) CandidateSessions.discard(applicationContext, token)
         model.hide()
         finish()
     }
 
-    private fun openSmsDraft(candidate: OtpCandidate): String? {
-        if (!lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) ||
-            getSystemService(KeyguardManager::class.java).isDeviceLocked) return "Return to the unlocked review screen to continue."
-        if (CandidateSessions.find(token) !== candidate) return "This candidate is no longer available. Nothing was sent."
-        val smsPackage = Telephony.Sms.getDefaultSmsPackage(this)
-            ?: return "No default SMS app is configured. Nothing was sent."
-        // This is the ONLY payload handoff, following the user's explicit review-button tap.
-        // Restrict the draft to the user's default SMS app. No SMS permission for sending.
-        val draft = Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", candidate.recipient, null))
-            .setPackage(smsPackage).putExtra("sms_body", candidate.code)
-        return try {
-            startActivity(draft)
-            finish()
-            null
-        } catch (_: ActivityNotFoundException) {
-            "Your default SMS app cannot open this draft. Nothing was sent."
-        } catch (_: SecurityException) {
-            "Android blocked opening the SMS draft. Nothing was sent."
-        }
-    }
+    private fun confirmedAndResumed() = lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) &&
+        !getSystemService(KeyguardManager::class.java).isDeviceLocked
 }

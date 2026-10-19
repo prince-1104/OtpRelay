@@ -8,21 +8,25 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.prince.otprelay.settings.SettingsRepository
 import com.prince.otprelay.settings.SenderIds
+import com.prince.otprelay.settings.PhoneNumbers
+import com.prince.otprelay.sending.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 data class ReviewState(val candidate: OtpCandidate? = null, val loading: Boolean = false,
-    val busy: Boolean = false, val message: String? = null)
+    val busy: Boolean = false, val message: String? = null, val send: SendState = SendState())
 
 class ReviewViewModel(application: Application, private val id: String) : AndroidViewModel(application) {
     private val repository = SettingsRepository(application)
     private val mutableState = MutableStateFlow(ReviewState(loading = true))
     val state = mutableState.asStateFlow()
     private var refreshJob: Job? = null
+    private var visible = false
 
     init {
         viewModelScope.launch {
@@ -33,44 +37,64 @@ class ReviewViewModel(application: Application, private val id: String) : Androi
                 }
             }
         }
+        viewModelScope.launch {
+            SendSessions.controller.states.collect { states ->
+                val send = states[id] ?: SendState()
+                mutableState.value = mutableState.value.copy(send = send, busy = send.inProgress,
+                    message = if (send.phase != mutableState.value.send.phase) null else mutableState.value.message,
+                    candidate = if (visible && send.phase !in setOf(SendPhase.SENT, SendPhase.UNKNOWN)) CandidateSessions.find(id) else null)
+            }
+        }
     }
 
     fun refresh() {
+        visible = true
         refreshJob?.cancel()
         refreshJob = viewModelScope.launch {
-            mutableState.value = ReviewState(loading = true)
+            val send = SendSessions.controller.state(id)
+            mutableState.value = ReviewState(loading = true, busy = send.inProgress, send = send)
             try {
                 val candidate = validated()
                 if (candidate == null) unavailable()
-                else mutableState.value = ReviewState(candidate)
+                else {
+                    val current = SendSessions.controller.state(id)
+                    mutableState.value = ReviewState(candidate, busy = current.inProgress, send = current)
+                }
             } catch (exception: Exception) {
                 if (exception is CancellationException) throw exception
-                mutableState.value = ReviewState(message = "Could not check saved settings. Reopen review to try again.")
+                mutableState.value = ReviewState(message = "Could not check saved settings. Reopen review to try again.", send = SendSessions.controller.state(id))
             }
         }
     }
 
     fun hide() {
+        visible = false
         refreshJob?.cancel()
-        mutableState.value = ReviewState()
+        val send = SendSessions.controller.state(id)
+        mutableState.value = ReviewState(busy = send.inProgress, send = send)
     }
 
-    fun openDraft(onOpen: (OtpCandidate) -> String?) {
-        if (mutableState.value.candidate == null || mutableState.value.busy) return
-        mutableState.value = mutableState.value.copy(busy = true, message = null)
+    /** The sole entry point for sending, wired only to the Send to Dad button. */
+    fun sendToDad(stillConfirmed: () -> Boolean) {
+        if (!visible || mutableState.value.candidate == null || !stillConfirmed()) return
+        val attempt = SendSessions.controller.begin(id) ?: run {
+            mutableState.value = mutableState.value.copy(message = "A send is already in progress or this candidate has already been submitted. Wait for its result.")
+            return
+        }
+        mutableState.value = mutableState.value.copy(busy = true, message = null, send = SendSessions.controller.state(id))
         viewModelScope.launch {
             try {
-                // Recheck expiry AND current settings after the deliberate button tap.
-                val candidate = validated()
-                if (candidate == null) { unavailable(); return@launch }
-                val error = onOpen(candidate)
-                if (error == null) {
-                    CandidateSessions.discard(getApplication(), id)
-                    mutableState.value = ReviewState(message = "SMS draft opened. Sending still requires confirmation in your SMS app.")
-                } else mutableState.value = ReviewState(CandidateSessions.find(id), message = error)
+                val candidate = withTimeout(8_000) { validated() }
+                when {
+                    candidate == null -> SendSessions.controller.preparationFailed(id, attempt, SendFailure.SETTINGS_CHANGED)
+                    !visible || !stillConfirmed() -> SendSessions.controller.preparationFailed(id, attempt, SendFailure.CANCELLED)
+                    PhoneNumbers.normalize(candidate.recipient) != candidate.recipient ->
+                        SendSessions.controller.preparationFailed(id, attempt, SendFailure.INVALID_NUMBER)
+                    else -> ConfirmedSmsSender.submit(getApplication(), candidate, attempt)
+                }
             } catch (exception: Exception) {
+                SendSessions.controller.preparationFailed(id, attempt, SendFailure.SETTINGS_UNAVAILABLE)
                 if (exception is CancellationException) throw exception
-                mutableState.value = ReviewState(CandidateSessions.find(id), message = "Could not open an SMS draft. Nothing was sent.")
             }
         }
     }
@@ -87,7 +111,10 @@ class ReviewViewModel(application: Application, private val id: String) : Androi
     }
 
     private fun unavailable() {
-        mutableState.value = ReviewState(message = "This candidate expired, was replaced, or is no longer eligible. Nothing was sent.")
+        val send = SendSessions.controller.state(id)
+        mutableState.value = ReviewState(busy = send.inProgress, send = send,
+            message = if (send.phase == SendPhase.READY || send.phase == SendPhase.FAILED)
+                "This candidate expired, was replaced, or is no longer eligible." else null)
     }
 
     class Factory(private val app: Context, private val id: String) : ViewModelProvider.Factory {
