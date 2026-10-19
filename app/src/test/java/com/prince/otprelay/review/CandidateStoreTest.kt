@@ -69,4 +69,24 @@ class CandidateStoreTest {
             assertEquals(1, results.count { it.get() != null })
         } finally { pool.shutdownNow() }
     }
+
+    @Test fun elapsedTimeJumpExpiresWithoutWaitingForCleanupJob() {
+        val id = store.offer(detection())!!
+        time += 8 * 60 * 60 * 1_000L // Simulated long device sleep.
+        assertNull(store.find(id))
+    }
+
+    @Test fun replayOfReplacedMessageCannotReplaceTheCurrentCandidate() {
+        store.offer(detection())!!
+        val current = store.offer(detection(timestamp = 43))!!
+        assertNull(store.offer(detection()))
+        assertNotNull(store.find(current))
+    }
+
+    @Test fun dedupCacheIsBoundedAndKeepsRecentEntries() {
+        repeat(CandidateStore.MAX_SEEN + 1) { store.offer(detection(timestamp = it.toLong())) }
+        assertNull(store.offer(detection(timestamp = CandidateStore.MAX_SEEN.toLong())))
+        // Oldest fingerprint was evicted; this documented limit avoids unbounded memory.
+        assertNotNull(store.offer(detection(timestamp = 0)))
+    }
 }

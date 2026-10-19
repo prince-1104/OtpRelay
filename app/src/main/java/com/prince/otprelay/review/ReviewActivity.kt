@@ -42,6 +42,7 @@ class ReviewActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        CandidateSessions.refresh(applicationContext)
         unlocked = !getSystemService(KeyguardManager::class.java).isDeviceLocked
         sendPermission = ConfirmedSmsSender.permissionGranted(this)
         if (unlocked) model.refresh() else model.hide()

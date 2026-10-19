@@ -37,7 +37,8 @@ fun ReviewScreen(state: ReviewState, onSend: () -> Unit, onCancel: () -> Unit,
                 SendPhase.SENDING -> "Sending — waiting for the device’s SMS send result. Leaving this screen will not cancel the submitted SMS."
                 SendPhase.SENT -> "Sent — confirmed by the device’s SMS send callback. Delivery to the recipient is not confirmed."
                 SendPhase.FAILED -> (state.send.failure?.explanation ?: "SMS send failed.") +
-                    " No automatic retry. If the candidate is still available, tap Send to Dad again only if you choose to retry."
+                    if (state.send.retryBlocked) " This attempt previously had an unknown result; another send remains blocked."
+                    else " No automatic retry. If the candidate is still available, tap Send to Dad again only if you choose to retry."
                 SendPhase.UNKNOWN -> "Send result unknown. The SMS may have been sent. Delivery is not confirmed. Another send is blocked to avoid a duplicate."
             })
             state.message?.let { Text(it) }

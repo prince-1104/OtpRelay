@@ -2,6 +2,9 @@
 
 Personal, local-only Android application. Package: `com.prince.otprelay`.
 
+Audit results and regression coverage: [security/correctness audit](docs/AUDIT.md).
+Device-only work: [physical Android test checklist](docs/PHYSICAL_DEVICE_TESTS.md).
+
 ## OTP review notifications
 
 The launch screen provides a trusted recipient field, editable approved bank sender
@@ -91,6 +94,10 @@ on launch or Save.
    `Telephony.Sms.Intents.getMessagesFromIntent`, and joins bodies in supplied
    multipart order without inserting spaces. Null addresses/bodies, mixed senders,
    empty/malformed broadcasts, over 32 parts, and bodies over 16 KiB are discarded.
+   Decoding occurs only after checking the saved enable switch, valid settings,
+   and permission. Every segment must have a source timestamp no older than two
+   minutes and no more than 30 seconds ahead of device wall time; unknown/stale
+   timestamps fail closed, including OTP broadcasts withheld for hours.
 5. A bounded `goAsync()` coroutine reads the saved settings, checks permission
    again, filters the normalized exact sender allow-list, and classifies the
    message. Work finishes within an eight-second coroutine timeout; settings
@@ -138,7 +145,8 @@ the candidate; there is no persistence or restoration of codes.
   cancel a newer candidate. Candidate
   eligibility expires using a monotonic clock even if the user changes wall time.
   Scheduled in-process cleanup and the system notification timeout remove stale
-  references/alerts; access is also checked lazily after device sleep.
+  references/alerts; access is also checked lazily after device sleep. Both
+  activities reconcile expired token metadata against elapsed time on resume.
 - On Android 13+ **Allow notifications** requests `POST_NOTIFICATIONS`. Denial,
   revocation, or a blocked notification channel leaves SMS detection operational
   and offers **Review latest candidate** inside the app until expiry. Notification
@@ -221,7 +229,8 @@ ownership, reachability, or SMS capability. Extensions, letters, and ambiguous
 national-only numbers are rejected. An empty recipient is allowed only with
 detection off, so settings can be cleared.
 
-Sender IDs are trimmed and uppercased, preserving hyphens (2–20 ASCII letters,
+Sender IDs are trimmed and checked as ASCII before case normalization can confer
+approval. They are uppercased, preserving hyphens (2–20 ASCII letters,
 digits, or hyphens, starting with a letter/digit). Numeric short codes must have
 3–8 digits. Duplicate senders are rejected. These are exact allow-list entries,
 not an authentication mechanism. Enabling detection requires a valid recipient
@@ -298,10 +307,15 @@ gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --console=p
 BUILD SUCCESSFUL
 ```
 
-Kotlin compilation, resource processing, dex generation, APK packaging, thirty-two unit
-tests, and lint passed. Lint retains dependency-update warnings; the pinned
+Debug/release Kotlin compilation, resource processing, dex generation, APK
+packaging, 55 host unit tests, and both variants' lint passed. Release output is
+unsigned. Lint retains eight dependency-update warnings per variant; the pinned
 versions are deliberate, and Gradle 9.6.0 is AGP 9.4's documented default.
 The merged debug manifest includes `RECEIVE_SMS`, `SEND_SMS`, `POST_NOTIFICATIONS`, a
 `BROADCAST_SMS`-protected incoming receiver, a non-exported result receiver, and a
 non-exported review activity; no SMS reading/history, contacts, or internet
 permissions. No emulator or physical-device execution was performed.
+The optional downloadable EmojiCompat initializer is removed; text uses local
+platform fonts. The Gradle distribution checksum is pinned and the bundled wrapper
+JAR was verified against the official checksum. See the audit for guarantees and
+OS/carrier limits, including Android's system sent-SMS retention.

@@ -37,4 +37,25 @@ class IncomingSmsProcessorTest {
             assertFalse(processor.detect(it, settings, true))
         }
     }
+
+    @Test fun invalidSavedConfigurationCannotEnterDetection() {
+        val parts = listOf(SmsPart("VM-TESTBK", "OTP 482619"))
+        listOf(settings.copy(recipient = ""), settings.copy(recipient = "not a number"),
+            settings.copy(approvedSenders = setOf("VM-TEſTBK"))).forEach {
+            assertFalse(processor.eligible(it, true))
+            assertNull(processor.candidate(parts, it, true))
+        }
+    }
+
+    @Test fun preservesPartOrderEvenIfTimestampOrderDiffers() {
+        val parts = listOf(SmsPart("VM-TESTBK", "OTP 482", 200), SmsPart("VM-TESTBK", "619", 100))
+        val combined = MultipartSms.combine(parts)!!
+        assertEquals("OTP 482619", combined.body)
+        assertEquals(200L, combined.timestampMillis)
+    }
+
+    @Test fun multipartSenderNormalizationDoesNotAcceptLookalikes() {
+        assertTrue(processor.detect(listOf(SmsPart("vm-testbk", "OTP "), SmsPart("VM-TESTBK", "482619")), settings, true))
+        assertFalse(processor.detect(listOf(SmsPart("VM-TESTBK", "OTP "), SmsPart("VM-TEſTBK", "482619")), settings, true))
+    }
 }

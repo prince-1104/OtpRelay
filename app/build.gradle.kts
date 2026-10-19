@@ -27,6 +27,8 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.2")
+    // Already runtime-transitive; explicit because our manifest configures this provider.
+    implementation("androidx.startup:startup-runtime:1.1.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.datastore:datastore-preferences:1.2.1")
     implementation("com.googlecode.libphonenumber:libphonenumber:9.0.14")

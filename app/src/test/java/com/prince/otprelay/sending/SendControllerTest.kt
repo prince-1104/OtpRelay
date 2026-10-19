@@ -90,4 +90,32 @@ class SendControllerTest {
         assertFalse(controller.timeout("candidate", attempt))
         assertEquals(SendPhase.SENT, controller.state("candidate").phase)
     }
+
+    @Test fun lateFailureAfterUnknownCannotReenableRetry() {
+        val attempt = controller.begin("candidate")!!
+        controller.submitted("candidate", attempt)
+        controller.timeout("candidate", attempt)
+        assertTrue(controller.result("candidate", attempt, SendFailure.NO_SERVICE))
+        assertEquals(SendPhase.FAILED, controller.state("candidate").phase)
+        assertFalse(controller.state("candidate").canAttempt)
+        assertNull(controller.begin("candidate"))
+    }
+
+    @Test fun oldPreparationFailureCannotOverrideAnExplicitNewAttempt() {
+        val old = controller.begin("candidate")!!
+        controller.preparationFailed("candidate", old, SendFailure.PERMISSION)
+        val retry = controller.begin("candidate")!!
+        controller.submitted("candidate", retry)
+        controller.preparationFailed("candidate", old, SendFailure.CANCELLED)
+        assertEquals(retry, controller.state("candidate").attempt)
+        assertEquals(SendPhase.SENDING, controller.state("candidate").phase)
+    }
+
+    @Test fun definitiveFailureReleasesGlobalInFlightGuardWithoutAutoRetry() {
+        val old = controller.begin("candidate")!!
+        controller.submitted("candidate", old)
+        controller.result("candidate", old, SendFailure.NO_SERVICE)
+        assertNotNull(controller.begin("different-candidate"))
+        assertEquals(SendPhase.FAILED, controller.state("candidate").phase)
+    }
 }

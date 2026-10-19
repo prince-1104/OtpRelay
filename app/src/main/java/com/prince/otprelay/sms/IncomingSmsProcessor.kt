@@ -2,6 +2,7 @@ package com.prince.otprelay.sms
 
 import com.prince.otprelay.settings.RelaySettings
 import com.prince.otprelay.settings.SenderIds
+import com.prince.otprelay.settings.validateSettings
 
 // Regular classes intentionally avoid generated toString methods exposing payloads.
 class SmsPart(val sender: String?, val body: String?, val timestampMillis: Long = 0)
@@ -22,12 +23,16 @@ object MultipartSms {
 }
 
 class IncomingSmsProcessor(private val detector: OtpDetector = OtpDetector()) {
+    fun eligible(settings: RelaySettings, hasPermission: Boolean): Boolean =
+        hasPermission && settings.detectionEnabled &&
+            validateSettings(settings.recipient, settings.approvedSenders, true).isValid
+
     fun detect(parts: List<SmsPart>, settings: RelaySettings, hasPermission: Boolean): Boolean {
         return candidate(parts, settings, hasPermission) != null
     }
 
     fun candidate(parts: List<SmsPart>, settings: RelaySettings, hasPermission: Boolean): DetectedOtp? {
-        if (!hasPermission || !settings.detectionEnabled) return null
+        if (!eligible(settings, hasPermission)) return null
         val sms = MultipartSms.combine(parts) ?: return null
         val code = detector.findCode(sms.sender, sms.body, settings.approvedSenders) ?: return null
         return DetectedOtp(sms, code, settings.recipient)

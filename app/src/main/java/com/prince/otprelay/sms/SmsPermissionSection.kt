@@ -75,6 +75,7 @@ fun SmsPermissionSection(activity: Activity, status: DetectionStatus) {
                 DetectionStatus.WAITING -> "No eligible OTP has been observed in this app process. A missing broadcast does not prove that no OTP arrived."
                 DetectionStatus.LIKELY_OTP_OBSERVED -> "An approved, delivered SMS with likely OTP context was observed in this app process. Its body was discarded; a candidate may be available briefly for review."
                 DetectionStatus.INVALID_BROADCAST -> "A malformed incoming SMS broadcast was ignored. No detection was reported for it."
+                DetectionStatus.STALE_MESSAGE -> "An old or uncertain-timestamp SMS was ignored. Android may delay OTP delivery; no candidate was created."
                 DetectionStatus.PROCESSING_UNAVAILABLE -> "An incoming broadcast could not be processed. No detection was reported for it."
             })
             Text("Status is temporary and contains no SMS content. Only Send to Dad on the review screen can submit an SMS; nothing is sent automatically.")

@@ -22,7 +22,7 @@ class OtpDetector {
 
     private companion object {
         const val KEYWORD = "\\b(?:otp|one[\\s-]+time[\\s-]+password|verification[\\s-]+code)\\b"
-        const val CODE = "(?<![\\p{L}\\p{N}_.,])(?<code>[0-9]{6})(?![\\p{L}\\p{N}_]|[.,][0-9])"
+        const val CODE = "(?<![\\p{L}\\p{N}_.,])(?<![0-9][- /])(?<code>[0-9]{6})(?![\\p{L}\\p{N}_]|\\s*[.,/:-]\\s*[0-9]|\\s+[0-9])"
         // Require a direct grammatical link, rather than any nearby number.
         val forward = Regex(
             "$KEYWORD(?:\\s+(?:code|number))?(?:\\s+is)?\\s*[:=\\-]?\\s*$CODE",
@@ -33,7 +33,7 @@ class OtpDetector {
             RegexOption.IGNORE_CASE
         )
         val reverse = Regex(
-            "$CODE\\s+(?:(?:is|as)\\s+)?(?:(?:your|the)\\s+)?$KEYWORD",
+            "$CODE\\s+(?:is|as)\\s+(?:(?:your|the)\\s+)?$KEYWORD",
             RegexOption.IGNORE_CASE
         )
     }

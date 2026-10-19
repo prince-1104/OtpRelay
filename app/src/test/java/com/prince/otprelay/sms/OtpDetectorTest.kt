@@ -35,7 +35,8 @@ class OtpDetectorTest {
             "OTP for transaction 482619 will arrive later.",
             "OTP for payment 482619 has not been sent.",
             "Photopaper order 482619 is ready.",
-            "Your password is 482619."
+            "Your password is 482619.",
+            "482619 OTP requests were blocked."
         ).forEach { assertFalse("Unrelated message must not match", detector.isLikelyOtp("VM-TESTBK", it, approved)) }
     }
 
@@ -58,5 +59,20 @@ class OtpDetectorTest {
         assertEquals("482619", detector.findCode("VM-TESTBK", "OTP: 482619", approved))
         assertNull(detector.findCode("VM-TESTBK", "OTP 482619. Another OTP 391742.", approved))
         assertNull(detector.findCode("OTHER", "OTP: 482619", approved))
+    }
+
+    @Test fun rejectsSixDigitFragmentsOfFormattedLongerNumbers() {
+        listOf("OTP 482619-7890", "OTP 482619 / 7890", "OTP 482619:50",
+            "OTP 482619 - 7890", "OTP 482619 7890", "1-482619 is your OTP", "12/482619 is your OTP")
+            .forEach { assertNull("Formatted number must not become a candidate", detector.findCode("VM-TESTBK", it, approved)) }
+    }
+
+    @Test fun repeatedIdenticalCodeIsNotAnAmbiguousSecondCandidate() {
+        assertEquals("482619", detector.findCode("VM-TESTBK", "OTP 482619. 482619 is your verification code.", approved))
+    }
+
+    @Test fun supportsLineBreaksAndPunctuationWithoutLooseningNumberBoundaries() {
+        assertEquals("482619", detector.findCode("VM-TESTBK", "Your verification code:\n482619. Valid briefly.", approved))
+        assertEquals("482619", detector.findCode("VM-TESTBK", "OTP-482619 expires shortly.", approved))
     }
 }

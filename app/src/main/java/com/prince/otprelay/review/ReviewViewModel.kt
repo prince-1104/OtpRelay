@@ -18,9 +18,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
-data class ReviewState(val candidate: OtpCandidate? = null, val loading: Boolean = false,
-    val busy: Boolean = false, val message: String? = null, val send: SendState = SendState())
-
 class ReviewViewModel(application: Application, private val id: String) : AndroidViewModel(application) {
     private val repository = SettingsRepository(application)
     private val mutableState = MutableStateFlow(ReviewState(loading = true))
@@ -40,9 +37,7 @@ class ReviewViewModel(application: Application, private val id: String) : Androi
         viewModelScope.launch {
             SendSessions.controller.states.collect { states ->
                 val send = states[id] ?: SendState()
-                mutableState.value = mutableState.value.copy(send = send, busy = send.inProgress,
-                    message = if (send.phase != mutableState.value.send.phase) null else mutableState.value.message,
-                    candidate = if (visible && send.phase !in setOf(SendPhase.SENT, SendPhase.UNKNOWN)) CandidateSessions.find(id) else null)
+                mutableState.value = mutableState.value.withSendState(send, visible, CandidateSessions.find(id))
             }
         }
     }

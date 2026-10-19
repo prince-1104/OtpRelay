@@ -26,11 +26,12 @@ object PhoneNumbers {
 
 object SenderIds {
     fun normalize(input: String): String? {
-        val value = input.trim().uppercase(Locale.ROOT)
-        return value.takeIf {
-            if (it.all(Char::isDigit)) Regex("[0-9]{3,8}").matches(it)
-            else Regex("[A-Z0-9][A-Z0-9-]{1,19}").matches(it)
-        }
+        val value = input.trim()
+        // Validate before case folding: characters such as long-s must not turn
+        // into an approved ASCII ID through Unicode uppercasing.
+        if (!Regex("[A-Za-z0-9][A-Za-z0-9-]{1,19}").matches(value)) return null
+        if (value.all { it in '0'..'9' } && !Regex("[0-9]{3,8}").matches(value)) return null
+        return value.uppercase(Locale.ROOT)
     }
 }
 

@@ -25,9 +25,9 @@ enum class SendFailure(val explanation: String) {
 }
 
 data class SendState(val phase: SendPhase = SendPhase.READY,
-    val attempt: String? = null, val failure: SendFailure? = null) {
+    val attempt: String? = null, val failure: SendFailure? = null, val retryBlocked: Boolean = false) {
     val inProgress get() = phase == SendPhase.PREPARING || phase == SendPhase.SENDING
-    val canAttempt get() = phase == SendPhase.READY || phase == SendPhase.FAILED
+    val canAttempt get() = !retryBlocked && (phase == SendPhase.READY || phase == SendPhase.FAILED)
 }
 
 /** Payload-free state machine. It cannot send, retry, or hold an OTP or recipient. */
@@ -71,7 +71,7 @@ class SendController {
     @Synchronized fun timeout(token: String, attempt: String): Boolean {
         val current = state(token)
         if (current.attempt != attempt || current.phase != SendPhase.SENDING) return false
-        set(token, current.copy(phase = SendPhase.UNKNOWN))
+        set(token, current.copy(phase = SendPhase.UNKNOWN, retryBlocked = true))
         return true
     }
 

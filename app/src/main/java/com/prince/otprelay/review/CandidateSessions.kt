@@ -29,6 +29,12 @@ object CandidateSessions {
 
     fun find(id: String): OtpCandidate? = store.find(id)
 
+    /** Coroutine delays can pause during device sleep; reconcile against elapsed time on resume. */
+    @Synchronized fun refresh(context: Context) {
+        val id = mutableToken.value ?: return
+        if (store.find(id) == null) discard(context, id)
+    }
+
     @Synchronized fun discard(context: Context, id: String) {
         store.discard(id)
         if (mutableToken.value == id) {

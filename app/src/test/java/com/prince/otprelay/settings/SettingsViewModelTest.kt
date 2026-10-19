@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.*
@@ -72,5 +73,33 @@ class SettingsViewModelTest {
         advanceUntilIdle()
         assertEquals("+442079460018", model.uiState.value.recipient)
         assertTrue(model.uiState.value.message!!.contains("saved"))
+    }
+
+    @Test fun loadFailureBlocksEditingAndSavingUntilExplicitRetrySucceeds() = runTest(dispatcher) {
+        var failRead = true
+        var writes = 0
+        val store = object : DataStore<Preferences> {
+            override val data get() = flow {
+                if (failRead) throw IOException("Synthetic read failure")
+                emit(emptyPreferences())
+            }
+            override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+                writes++
+                return transform(emptyPreferences())
+            }
+        }
+        val model = SettingsViewModel(SettingsRepository(store))
+        models.put("settings", model)
+        advanceUntilIdle()
+        assertTrue(model.uiState.value.loadFailed)
+        assertFalse(model.uiState.value.editable)
+        model.recipientChanged("+442079460018")
+        model.save()
+        assertEquals(0, writes)
+        assertEquals("", model.uiState.value.recipient)
+        failRead = false
+        model.load()
+        advanceUntilIdle()
+        assertTrue(model.uiState.value.editable)
     }
 }

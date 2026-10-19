@@ -20,22 +20,6 @@ import kotlinx.coroutines.withTimeout
 class SmsReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         if (intent?.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION || !hasSmsPermission(context)) return
-        val parts = try {
-            val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
-            if (messages.isNullOrEmpty() || messages.size > 32) {
-                DetectionStatusStore.report(DetectionStatus.INVALID_BROADCAST)
-                return
-            }
-            messages.map { message -> SmsPart(message?.originatingAddress, message?.messageBody, message?.timestampMillis ?: 0) }
-        } catch (_: RuntimeException) {
-            // Malformed extras/PDUs and permission races must not crash or log payloads.
-            DetectionStatusStore.report(DetectionStatus.INVALID_BROADCAST)
-            return
-        }
-        if (MultipartSms.combine(parts) == null) {
-            DetectionStatusStore.report(DetectionStatus.INVALID_BROADCAST)
-            return
-        }
         val pending = goAsync()
         val appContext = context.applicationContext
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -45,7 +29,29 @@ class SmsReceiver : BroadcastReceiver() {
                 // Bound work so every goAsync result is finished within the receiver window.
                 withTimeout(8_000) {
                     val settings = SettingsRepository(appContext).settings.first()
-                    val candidate = IncomingSmsProcessor().candidate(parts, settings, hasSmsPermission(appContext))
+                    val processor = IncomingSmsProcessor()
+                    // Do not decode SMS content at all while disabled or settings are invalid.
+                    if (!processor.eligible(settings, hasSmsPermission(appContext))) return@withTimeout
+                    val parts = try {
+                        val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
+                        if (messages.isNullOrEmpty() || messages.size > 32) {
+                            DetectionStatusStore.report(DetectionStatus.INVALID_BROADCAST)
+                            return@withTimeout
+                        }
+                        messages.map { message -> SmsPart(message?.originatingAddress, message?.messageBody, message?.timestampMillis ?: 0) }
+                    } catch (_: RuntimeException) {
+                        DetectionStatusStore.report(DetectionStatus.INVALID_BROADCAST)
+                        return@withTimeout
+                    }
+                    if (MultipartSms.combine(parts) == null) {
+                        DetectionStatusStore.report(DetectionStatus.INVALID_BROADCAST)
+                        return@withTimeout
+                    }
+                    if (parts.any { !SmsFreshness.isFresh(it.timestampMillis, System.currentTimeMillis()) }) {
+                        DetectionStatusStore.report(DetectionStatus.STALE_MESSAGE)
+                        return@withTimeout
+                    }
+                    val candidate = processor.candidate(parts, settings, hasSmsPermission(appContext))
                     if (candidate != null) {
                         DetectionStatusStore.report(DetectionStatus.LIKELY_OTP_OBSERVED)
                         CandidateSessions.offer(appContext, candidate)
@@ -55,8 +61,7 @@ class SmsReceiver : BroadcastReceiver() {
                 // Settings I/O errors, cancellation/timeout and permission races fail closed.
                 DetectionStatusStore.report(DetectionStatus.PROCESSING_UNAVAILABLE)
             } finally {
-                pending.finish()
-                scope.cancel()
+                try { pending.finish() } finally { scope.cancel() }
             }
         }
     }

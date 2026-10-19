@@ -17,6 +17,11 @@ import com.prince.otprelay.review.NotificationPermissionSection
 import com.prince.otprelay.ui.theme.OtpRelayTheme
 
 class MainActivity : ComponentActivity() {
+    override fun onResume() {
+        super.onResume()
+        CandidateSessions.refresh(applicationContext)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
