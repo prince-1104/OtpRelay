@@ -21,6 +21,29 @@ Settings use a fixed Save button with nearby save/error feedback and a snackbar
 confirmation, so the result remains visible on long sender lists. Expand
 **Permissions & detection status** to manage permissions or review delivery status.
 
+## Quick confirmation and manual verification notes
+
+While the settings activity is resumed and the phone is unlocked, a new candidate
+opens a secure confirmation dialog. In the background, the generic notification
+offers **Review & send**, which opens that dialog without sending. New notification
+channels request high importance for heads-up banners; existing channel settings,
+Do Not Disturb and Android's display decisions are respected. For an existing
+installation, open **Permissions & detection status > Notification settings** and
+enable pop-on-screen/high importance for **OTP review** if desired. No overlay,
+full-screen intent, or background activity-launch permission is added.
+
+**Manual verification history** on the settings screen opens a local notes list.
+Enter a bank name, editable date/time in the phone's current time zone, optional
+positive amount and currency. Records are entirely manual: neither sending an OTP
+nor receiving one creates a record, and amounts are not extracted from messages.
+Mark a note **Manually verified** after checking your bank independently. Notes
+are not proof of a completed payment or SMS delivery. Keep OTPs, account numbers
+and messages out of these fields; bank names reject digits. The history DataStore
+contains only record IDs, bank names, timestamps, amounts/currencies and manual
+verification flags, with a maximum of 200 records (oldest dates removed first).
+Records can be individually deleted or cleared after confirmation. History has no
+network/sync/backup and is removed on uninstall. The history screen uses FLAG_SECURE.
+
 - Kotlin with Android Gradle Plugin's built-in Kotlin support.
 - Jetpack Compose and Material 3, light/dark and Android 12+ dynamic colors.
 - Simple MVVM: `SettingsViewModel` exposes `StateFlow<SettingsUiState>`;

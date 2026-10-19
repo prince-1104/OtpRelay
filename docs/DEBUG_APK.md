@@ -1,11 +1,12 @@
 # Personal-use debug APK
 
-Verified on 2026-10-19: Gradle `:app:test :app:assembleDebug --rerun-tasks`
-succeeded; all 55 tests across 11 suites passed, with zero failures, errors,
+Verified version 0.2.0 on 2026-10-19: Gradle `:app:test :app:assembleDebug :app:lintDebug`
+succeeded; all 62 tests across 13 suites passed, with zero failures, errors,
 or skipped tests. Only the debug unit-test variant is configured. An initial
 attempt to select `testReleaseUnitTest` failed because that task does not exist;
 the aggregate `test` task subsequently ran all configured unit tests.
-No source fixes were needed. Physical-device tests remain NOT RUN.
+Lint reported zero errors and eight existing dependency-update warnings.
+Physical-device tests remain NOT RUN.
 
 ## Windows build
 
@@ -22,8 +23,8 @@ Build only: `.\gradlew.bat :app:assembleDebug` after setting the environment abo
 
 Output: `D:\Hopper\projects\SMS-auto\app\build\outputs\apk\debug\app-debug.apk`
 
-Verified size: 11,990,488 bytes. SHA-256:
-`C7A950BA388884B91F495CCE5E36583AF8178D62AD9F3464E4B72B3EFADA551B`.
+Verified size: 12,056,111 bytes. SHA-256:
+`FA9B27598F7ED2D89C431B29AA93BE9ADC965C92E9569BDD02BF7F4C926E1EB2`.
 Android `apksigner verify --verbose` succeeded (v2 signature, one signer).
 These values describe this build; rebuilding may change the hash.
 Gradle reported that two dependency native libraries could not be stripped and
@@ -51,6 +52,14 @@ The APK is a debuggable development build, not a production release.
    SMS sending permission through the review screen if needed, then separately
    tap Send to Dad to confirm the outgoing SMS. Granting permission never sends.
    Cancel discards the candidate; candidates expire after two minutes.
+6. For popup banners on an existing installation, expand Permissions & detection
+   status > Notification settings, select OTP review and enable high importance/
+   pop-on-screen. Android and Do Not Disturb can still suppress banners. With the
+   settings screen open and unlocked, an eligible candidate opens its confirmation
+   dialog directly; while in another app, tap Review & send on the notification.
+7. Open Manual verification history to enter bank name, date/time, optional amount
+   and currency. Check records against your bank and mark Manually verified.
+   These notes are independent of OTP detection and are not proof of payment.
 
 An update requires the same signing key. If Android reports a signing conflict,
 uninstall the earlier copy first; this deletes its saved settings.

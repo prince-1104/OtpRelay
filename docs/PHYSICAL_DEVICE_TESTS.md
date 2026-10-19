@@ -119,7 +119,8 @@ screenshots/logs in an issue or report.
   Synthetic code/body and full recipient must not appear in app-generated logs.
   Avoid publishing captures that include unrelated system/default-SMS-app messages.
 - [ ] With a debug-only synthetic run, inspect app-private files: DataStore should
-  contain only recipient, approved sender IDs, and enabled flag. No code/body,
+  contain settings (recipient, approved sender IDs, enabled flag), and separately
+  user-entered verification metadata if any was saved. No code/body,
   candidate history, plaintext dedup cache, or crash payload file should appear.
 - [ ] Inspect a locally signed release's merged manifest/package: not debuggable;
   review/result receiver non-exported; incoming receiver BROADCAST_SMS-protected;
@@ -133,3 +134,22 @@ screenshots/logs in an issue or report.
 
 Record each case as PASS / FAIL / BLOCKED with OS/build and minimal metadata.
 Leave unchecked until exercised; this checklist is not evidence of device execution.
+
+## Quick popup and manual history (NOT RUN)
+
+- [ ] With settings visible and unlocked, an eligible synthetic message opens a
+  secure confirmation dialog. It sends nothing until Send to Dad is tapped.
+- [ ] With another app visible or the phone locked, no app activity launches on
+  receipt. The notification remains generic; Review & send opens the confirmation
+  dialog after unlocking. Denial, Do Not Disturb and banner preferences are honored.
+- [ ] On an existing installation, enable high importance/pop-on-screen for OTP
+  review manually. On a fresh installation the channel starts at high importance.
+  Android/OEM may still suppress heads-up banners. No overlay permission is needed.
+- [ ] Test large font, small screen, keyboard, rotation and screen lock. Confirmation
+  buttons stay reachable; OTPs never appear in lock-screen notification text.
+- [ ] Add synthetic manual notes with bank/date/time and optional amount/currency.
+  Invalid dates, zero/negative/overprecision amounts and bank names containing
+  digits are rejected. No automatic record is created by detection or sending.
+- [ ] Restart the app: notes and verified flags persist. Mark/unmark verified,
+  delete individual records, cancel Clear history, then confirm Clear history.
+  Uninstall deletes notes. No OTP or raw SMS is persisted with notes.

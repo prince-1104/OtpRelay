@@ -7,15 +7,22 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.SecureFlagPolicy
 import com.prince.otprelay.sending.SendPhase
 
 @Composable
 fun ReviewScreen(state: ReviewState, onSend: () -> Unit, onCancel: () -> Unit,
     sendPermissionGranted: Boolean, permissionContent: @Composable () -> Unit) {
-    Scaffold { insets ->
-        Column(Modifier.padding(insets).fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+    Dialog(onDismissRequest = { if (!state.busy) onCancel() }, properties = DialogProperties(
+        securePolicy = SecureFlagPolicy.SecureOn, dismissOnClickOutside = false)) {
+      Surface(shape = MaterialTheme.shapes.extraLarge) {
+       Column(Modifier.fillMaxWidth().heightIn(max = 620.dp).padding(24.dp),
+           verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text("Review possible bank OTP", style = MaterialTheme.typography.headlineMedium)
+            Text("Send this OTP?", style = MaterialTheme.typography.headlineSmall)
             Text("Check the sender and recipient. A sender ID does not prove who sent the message.")
             if (state.loading) CircularProgressIndicator()
             state.candidate?.let { candidate ->
@@ -23,12 +30,7 @@ fun ReviewScreen(state: ReviewState, onSend: () -> Unit, onCancel: () -> Unit,
                 Text(candidate.code, style = MaterialTheme.typography.headlineLarge)
                 Text("Sender: ${candidate.sender}")
                 Text("Configured recipient: ${candidate.recipient}")
-                Text("Expires two minutes after detection. This screen does not retain an OTP history.")
-                Text("Tapping Send to Dad sends one SMS to the displayed recipient, containing only ‘OtpRelay OTP:’ and this code. Carrier SMS charges may apply.")
-                Button(onClick = onSend, enabled = !state.busy && state.send.canAttempt && sendPermissionGranted,
-                    modifier = Modifier.fillMaxWidth()) {
-                    Text("Send to Dad")
-                }
+                Text("Expires after two minutes. Sends only the code with ‘OtpRelay OTP:’. Carrier charges may apply.")
             }
             Text(when (state.send.phase) {
                 SendPhase.READY -> if (state.candidate != null) "Ready for your confirmation. No send is started automatically."
@@ -43,7 +45,14 @@ fun ReviewScreen(state: ReviewState, onSend: () -> Unit, onCancel: () -> Unit,
             })
             state.message?.let { Text(it) }
             permissionContent()
-            OutlinedButton(onClick = onCancel, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
         }
+        if (state.candidate != null) Button(onClick = onSend,
+            enabled = !state.busy && state.send.canAttempt && sendPermissionGranted,
+            modifier = Modifier.fillMaxWidth()) { Text(if (state.busy) "Sending…" else "Send to Dad") }
+        OutlinedButton(onClick = onCancel, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+            Text(if (state.candidate == null) "Close" else "Cancel")
+        }
+       }
+      }
     }
 }

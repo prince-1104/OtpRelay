@@ -31,6 +31,7 @@ fun SettingsScreen(
     onDetection: (Boolean) -> Unit,
     onSave: () -> Unit,
     onRetry: () -> Unit,
+    onHistory: () -> Unit,
     permissionContent: @Composable () -> Unit
 ) {
     val snackbar = remember { SnackbarHostState() }
@@ -73,6 +74,9 @@ fun SettingsScreen(
                 Text("OtpRelay", style = MaterialTheme.typography.headlineLarge)
                 Text("Settings", style = MaterialTheme.typography.titleLarge)
                 Text("Stored only on this device. No OTP codes or message history are stored.")
+                OutlinedButton(onClick = onHistory, modifier = Modifier.fillMaxWidth()) {
+                    Text("Manual verification history")
+                }
                 if (state.loading) {
                     CircularProgressIndicator()
                     Text("Loading settings…")

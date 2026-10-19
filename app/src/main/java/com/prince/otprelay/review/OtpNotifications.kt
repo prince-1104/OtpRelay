@@ -38,7 +38,7 @@ object OtpNotifications {
 
     private fun post(context: Context, token: String) {
         val manager = context.getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(NotificationChannel(CHANNEL, "OTP review", NotificationManager.IMPORTANCE_DEFAULT).apply {
+        manager.createNotificationChannel(NotificationChannel(CHANNEL, "OTP review", NotificationManager.IMPORTANCE_HIGH).apply {
             description = "Private reminders to review a possible bank OTP"
             lockscreenVisibility = NotificationCompat.VISIBILITY_PRIVATE
         })
@@ -54,6 +54,7 @@ object OtpNotifications {
             .setContentText(TEXT).setStyle(NotificationCompat.BigTextStyle().bigText(TEXT))
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setPublicVersion(publicNotification)
             .setContentIntent(tap).setAutoCancel(true).setLocalOnly(true)
+            .addAction(0, "Review & send", tap)
             .setTimeoutAfter(CandidateStore.LIFETIME_MS).build()
         try {
             // Recheck to handle revocation between constructing and posting the notification.

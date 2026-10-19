@@ -20,6 +20,8 @@
             <meta-data android:name="androidx.emoji2.text.EmojiCompatInitializer" tools:node="remove" />
         </provider>
         <receiver android:name=".sending.SmsSentReceiver" android:exported="false" />
+        <activity android:name=".history.HistoryActivity" android:exported="false"
+            android:excludeFromRecents="true" />
         <activity android:name=".review.ReviewActivity" android:exported="false"
             android:excludeFromRecents="true" />
         <receiver

@@ -49,13 +49,14 @@ fun NotificationPermissionSection(activity: Activity, candidateToken: String?) {
                         Text("Allow notifications")
                     }
                 }
-                OutlinedButton(onClick = {
-                    try {
-                        activity.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                            .putExtra(Settings.EXTRA_APP_PACKAGE, activity.packageName))
-                    } catch (_: ActivityNotFoundException) { error = "Open your phone’s Settings app to check notifications." }
-                }) { Text("Notification settings") }
             }
+            Text("For a popup banner, enable pop-on-screen/high importance for OTP review in notification settings. Android controls banners and Do Not Disturb; existing channel preferences are preserved.")
+            OutlinedButton(onClick = {
+                try {
+                    activity.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(Settings.EXTRA_APP_PACKAGE, activity.packageName))
+                } catch (_: ActivityNotFoundException) { error = "Open your phone’s Settings app to check notifications." }
+            }) { Text("Notification settings") }
             Text("Candidates expire after two minutes and disappear if Android stops the app process. A new candidate replaces the previous one.")
             if (candidateToken != null) {
                 Button(onClick = { activity.startActivity(OtpNotifications.reviewIntent(activity, candidateToken)) }) {
