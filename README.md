@@ -4,6 +4,7 @@ Personal, local-only Android application. Package: `com.prince.otprelay`.
 
 Audit results and regression coverage: [security/correctness audit](docs/AUDIT.md).
 Device-only work: [physical Android test checklist](docs/PHYSICAL_DEVICE_TESTS.md).
+Debug APK build, installation, and removal: [personal-use guide](docs/DEBUG_APK.md).
 
 ## OTP review notifications
 
