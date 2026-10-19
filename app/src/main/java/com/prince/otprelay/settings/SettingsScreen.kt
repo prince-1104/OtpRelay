@@ -6,6 +6,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -28,7 +33,37 @@ fun SettingsScreen(
     onRetry: () -> Unit,
     permissionContent: @Composable () -> Unit
 ) {
-    Scaffold { insets ->
+    val snackbar = remember { SnackbarHostState() }
+    var showPermissionDetails by remember { mutableStateOf(false) }
+    LaunchedEffect(state.message) {
+        state.message?.let { snackbar.showSnackbar(it) }
+    }
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
+        bottomBar = {
+            Surface(tonalElevation = 3.dp) {
+                Column(
+                    Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    state.message?.let {
+                        Text(it, Modifier.widthIn(max = 552.dp).semantics {
+                            liveRegion = LiveRegionMode.Polite
+                        }, style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Button(onClick = onSave, enabled = state.editable,
+                        modifier = Modifier.widthIn(max = 552.dp).fillMaxWidth()) {
+                        if (state.saving) {
+                            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                        }
+                        Text(if (state.saving) "Saving…" else "Save settings")
+                    }
+                }
+            }
+        }
+    ) { insets ->
         Box(Modifier.fillMaxSize().padding(insets), contentAlignment = Alignment.TopCenter) {
             Column(
                 Modifier.widthIn(max = 600.dp).fillMaxWidth().imePadding()
@@ -42,7 +77,6 @@ fun SettingsScreen(
                     CircularProgressIndicator()
                     Text("Loading settings…")
                 }
-                state.message?.let { Text(it, Modifier.semantics { liveRegion = LiveRegionMode.Polite }) }
                 if (state.loadFailed) OutlinedButton(onClick = onRetry) { Text("Retry loading") }
                 Text("Trusted recipient", style = MaterialTheme.typography.titleMedium)
                 OutlinedTextField(
@@ -60,7 +94,8 @@ fun SettingsScreen(
                     OutlinedCard(Modifier.fillMaxWidth()) {
                         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(sender, Modifier.weight(1f))
-                            TextButton(onClick = { onRemoveSender(sender) }, enabled = state.editable) { Text("Remove $sender") }
+                            TextButton(onClick = { onRemoveSender(sender) }, enabled = state.editable,
+                                modifier = Modifier.semantics { contentDescription = "Remove $sender" }) { Text("Remove") }
                         }
                     }
                 }
@@ -85,10 +120,11 @@ fun SettingsScreen(
                         Text("Sending will always require an explicit user action.")
                     }
                 }
-                permissionContent()
-                Button(onClick = onSave, enabled = state.editable, modifier = Modifier.fillMaxWidth()) {
-                    Text(if (state.saving) "Saving…" else "Save settings")
+                OutlinedButton(onClick = { showPermissionDetails = !showPermissionDetails },
+                    modifier = Modifier.fillMaxWidth()) {
+                    Text(if (showPermissionDetails) "Hide permissions & detection status" else "Permissions & detection status")
                 }
+                if (showPermissionDetails) permissionContent()
             }
         }
     }

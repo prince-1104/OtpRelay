@@ -17,6 +17,10 @@ review screen. Only the review screen's **Send to Dad** button submits one SMS
 using Android `SmsManager`. No arrival, notification tap, permission callback,
 result callback, or background task initiates sending.
 
+Settings use a fixed Save button with nearby save/error feedback and a snackbar
+confirmation, so the result remains visible on long sender lists. Expand
+**Permissions & detection status** to manage permissions or review delivery status.
+
 - Kotlin with Android Gradle Plugin's built-in Kotlin support.
 - Jetpack Compose and Material 3, light/dark and Android 12+ dynamic colors.
 - Simple MVVM: `SettingsViewModel` exposes `StateFlow<SettingsUiState>`;
